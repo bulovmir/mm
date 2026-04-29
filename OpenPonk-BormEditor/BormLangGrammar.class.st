@@ -51,9 +51,12 @@ Class {
 		'communication',
 		'communications',
 		'node',
+		'node_',
 		'nodes',
 		'namePair',
+		'namePairOpened',
 		'name',
+		'nameOpened',
 		'constraint',
 		'diagram',
 		'activityStart'
@@ -65,9 +68,14 @@ Class {
 
 { #category : 'accessing' }
 BormLangGrammar >> activity [
-	^ ($( asParser , space , namePair,space,$)asParser ) ==> [ :arr | arr third ]
-	"activity
-	^ (activityStart , space , namePair) ==> [ :arr | arr last ]"
+	^ (activityStart , space , namePair) ==> [ :arr | arr last ]
+]
+
+{ #category : 'accessing' }
+BormLangGrammar >> activityEnd [
+	^ ')' asParser
+	"activityStart
+	^ 'activity' asParser"
 ]
 
 { #category : 'accessing' }
@@ -81,9 +89,6 @@ BormLangGrammar >> activityStart [
 BormLangGrammar >> communication [
 	^ (('talk to ' asParser , name) ==> [ :arr | { arr second . nil . nil } ])
 		/ (('send ' asParser , name , ' to ' asParser , name , (' and receive ' asParser , name) optional) ==> [ :arr | { arr fourth . arr second . arr fifth ifNotNil: [ arr fifth second ] } ])
-		"communication
-	^ (('talk to ' asParser , name) ==> [ :arr | { arr second . nil . nil } ])
-		/ (('send ' asParser , name , ' to ' asParser , name , (' and receive ' asParser , name) optional) ==> [ :arr | { arr fourth . arr second . arr fifth ifNotNil: [ arr fifth second ] } ])"
 ]
 
 { #category : 'accessing' }
@@ -105,15 +110,30 @@ BormLangGrammar >> diagram [
 
 { #category : 'accessing' }
 BormLangGrammar >> name [
-	^ ( string ) ==> [ :arr | arr ]
+	"^  (namePair/((stringEnclosed/ newWord) ==> [:w | {w.w}]))"
 	"	^ ($' asParser , string , $' asParser) ==> [ :arr | arr second ]"
-	"^ ($"" asParser , string , $"" asParser) ==> [ :arr | arr second ]"
+	^ ($" asParser , string , $" asParser) ==> [ :arr | arr second ]
+]
+
+{ #category : 'accessing' }
+BormLangGrammar >> nameOpened [
+	"^  (namePairOpened /(string ==> [:w | {w.w}]))"
+	"	^ ($' asParser , string , $' asParser) ==> [ :arr | arr second ]"
+	^ ($" asParser , string , $" asParser) ==> [ :arr | arr second ]
 ]
 
 { #category : 'accessing' }
 BormLangGrammar >> namePair [
-	^ ( ((  stringEnclosed /newWord ), space, $: asParser,space,(  stringEnclosed /newWord ) ))
-		map: [ :id :sp1 :c :sp2 :nm | { id.nm }inspect]
+	"^ ( ((  stringEnclosed /newWord ), space, $: asParser,space,(  stringEnclosed /newWord ) ))
+		map: [ :id :sp1 :c :sp2 :nm | { id.nm }]"
+			^ (name , ((space , 'as' asParser , space , name) ==> [ :arr | arr fourth ]) optional)
+		==> [ :arr | arr first -> (arr second ifNil: [ arr first ]) ]
+]
+
+{ #category : 'accessing' }
+BormLangGrammar >> namePairOpened [
+	^  ((string/space), space, $: asParser,space,(string/space) )
+		map: [ :id :sp1 :c :sp2 :nm | { id.nm }]
 		"	^ (name , ((space , 'as' asParser , space , name) ==> [ :arr | arr fourth ]) optional)
 		==> [ :arr | arr first -> (arr second ifNil: [ arr first ]) ]"
 ]
@@ -132,6 +152,11 @@ BormLangGrammar >> newWord [
 { #category : 'accessing' }
 BormLangGrammar >> node [
 	^ activity / state , communications , transitions
+]
+
+{ #category : 'accessing' }
+BormLangGrammar >> node_ [
+	^ activity / state 
 	"node
 	^ activity / state , communications , transitions"
 ]
@@ -139,23 +164,22 @@ BormLangGrammar >> node [
 { #category : 'accessing' }
 BormLangGrammar >> nodes [
 	^ node trim star
+	"nodes
+	^ node trim star"
 ]
 
 { #category : 'accessing' }
-BormLangGrammar >> participant [
-	^ (   space, participantType, space, (namePair/(newWord ==> [:w | {w.w}])),space, ${ asParser ,space , $} asParser ,space) map: [ :sp1 :tp :sp2 :pair :sp3 :br :sp4 :br2 :sp5 |{  tp.pair  } 
-			  ]
-		"participant
+BormLangGrammar >> "participant [
 	^ (participantType , space , namePair , space , ${ asParser , space , nodes
 		, space , $} asParser) map: [ :type :sp :pair :sp2 :bra :sp3 :vertices :sp4 :ket
  | { type . pair . vertices }
 			  ]"
-		"participant
+		participant
 	^ (participantType , space , namePair , space , ${ asParser , #newline asParser , nodes
 		, #newline asParser optional , $} asParser) map: [ :type :sp :pair :sp2 :bra :nl :vertices :nl2 :ket
  | { type . pair . vertices }
 			  ]
-"
+
 
 ]
 
@@ -175,8 +199,8 @@ BormLangGrammar >> participants [
 
 { #category : 'accessing' }
 BormLangGrammar >> space [
-	^Character space asParser star
-	"^ Character space asParser plus"
+	"^#space asParser star"
+	^ Character space asParser plus
 ]
 
 { #category : 'accessing' }
@@ -186,14 +210,10 @@ BormLangGrammar >> start [
 
 { #category : 'accessing' }
 BormLangGrammar >> state [
-	^ stateType , space , namePair, space, stateEnd
-		map: [ :type :sp :smb :sp2 :end | 
-			{type . end} ]
-		"state
 	^ (stateType , space) optional , 'state' asParser , space , namePair
 		map: [ :type :smb :sp :pair | 
 			{(type ifNotNil: [ type first ]).
-			pair} ]"
+			pair} ]
 ]
 
 { #category : 'accessing' }
@@ -204,33 +224,28 @@ BormLangGrammar >> stateEnd [
 
 { #category : 'accessing' }
 BormLangGrammar >> stateType [
-	^ ('[[*' asParser / '[*' asParser / '[[' asParser/ '[' asParser) flatten
-	"^ ('final' asParser / 'initial and final' asParser / 'initial' asParser) flatten"
+	"^ ('[[*' asParser / '[*' asParser / '[[' asParser/ '[' asParser) flatten"
+	^ ('final' asParser / 'initial and final' asParser / 'initial' asParser) flatten
 ]
 
 { #category : 'accessing' }
 BormLangGrammar >> string [
-	^ (#word asParser/space ) plus flatten
-	"	^ (#word asParser / Character space asParser / '::' asParser) plus flatten"
+	"^ (space,newWord ,space ) plus flatten"
+		^ (#word asParser / Character space asParser / '::' asParser) plus flatten
 ]
 
 { #category : 'accessing' }
 BormLangGrammar >> stringEnclosed [
-	^ ($" asParser,(space ,newWord)  plus flatten,$" asParser ) map: [ :u1 :st :u2 | st ]
+	^ ($" asParser, (string/space) ,$" asParser ) map: [ :u1 :st :u2 | st ]
 	"	^ (#word asParser / Character space asParser / '::' asParser) plus flatten"
 		
 ]
 
 { #category : 'accessing' }
 BormLangGrammar >> transition [
-	^ activity, space , state
-		map: [ :act :sp :st| 
-			{act key. st key} ]
-		
-	"transition
 	^ 'go to ' asParser , name , constraint
 		map: [ :goTo :pair :condition | 
-			{pair. condition} ]"
+			{pair. condition} ]
 ]
 
 { #category : 'accessing' }

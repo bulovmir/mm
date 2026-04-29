@@ -22,7 +22,20 @@ OPBormPlugin class >> toolbarMenu: aBuilder [
 				highlighter: BormLangHighlighter new;
 				modelClass: BormORModel;
 				model: aBuilder model diagramController model;
-				openWithSpec ]
+				open]
+			"toolbarMenu: aBuilder
+
+	<opEditorToolbarMenu: #OPBormPlugin>
+	(aBuilder item: 'DSL Editor (not working)')
+		icon: OPBormEditorIcons oRModel16Icon;
+		action: [ 
+			OPDslEditor new
+				parser: BormLangParser new;
+				exporter: BormLangSerializer new;
+				highlighter: BormLangHighlighter new;
+				modelClass: BormORModel;
+				model: aBuilder model diagramController model;
+				openWithSpec ]"
 ]
 
 { #category : 'accessing' }
